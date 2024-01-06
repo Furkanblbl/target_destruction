@@ -1,76 +1,37 @@
 import cv2
-from pySerialTransfer import pySerialTransfer as txfer
-import numpy as np
+import pyzed.sl as sl
+import torch
 import time
-import math
+from pySerialTransfer import pySerialTransfer as txfer
+from torchvision.transforms import functional as F
 
+class ROVDataTx:
+    def __init__(self):
+        self.arac_ileri_degeri = 0
+        self.arac_x_degeri = 0
+        self.arac_y_degeri = 0
+        self.arac_yengec_degeri = 0
+        self.degree = 0
 
+class ROVDataRx:
+    def __init__(self):
+        self.RollS = 0
+        self.PitchS = 0
+        self.HeadingS = 0
+        self.frontLidarS = 0
+        self.leftLidarS = 0
+        self.rightLidarS = 0
+        self.altitudeS = 0
+        self.data1S = 0
 
+class ImageProcessor:
+    def __init__(self, model_path='bestEftelya.pt'):
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=True)
 
+    def process_frame(self, frame):
+        with torch.no_grad():
+            img_tensor = F.to_tensor(frame).unsqueeze(0).cuda()
+            result = self.model(img_tensor)
+            df = result.pandas().xyxy[0]
 
-class struct(object):
-    RollS = 0
-    PitchS = 0
-    HeadingS = 0
-    frontLidarS = 0
-    leftLidarS = 0
-    rightLidarS = 0
-    altitudeS = 0
-    data1S = 0
-    data2S = 0
-    data3S = 0
-    data4S = 0
-    data5S = 0
-
-class struct1(object):
-    arac_ileri_degeri = 0
-    arac_x_degeri = 0
-    arac_y_degeri = 0
-    arac_yengec_degeri = 0
-    degree = 0
-
-
-rovDataTx = struct1 # gönderilen
-rovDataRx = struct # alınan
-
-cam = cv2.VideoCapture(0)
-width1 = int(cam.set(cv2.CAP_PROP_FRAME_WIDTH,640))
-height1 = int(cam.set(cv2.CAP_PROP_FRAME_HEIGHT,480))
-
-height,width = 480 , 640
-
-
-link = txfer.SerialTransfer('/dev/ttyACM0')
-link.open()
-
-time.sleep(2) # allow some time for the Arduino to completely reset
-
-
-while True:
-
-    pass
-
-
-
-    
-    sendSize = 0
-    sendSize = link.tx_obj(rovDataTx.arac_ileri_degeri, start_pos=sendSize)
-    sendSize = link.tx_obj(rovDataTx.arac_y_degeri, start_pos=sendSize)
-    sendSize = link.tx_obj(rovDataTx.arac_x_degeri, start_pos=sendSize)
-    sendSize = link.tx_obj(rovDataTx.arac_yengec_degeri, start_pos=sendSize)
-    sendSize = link.tx_obj(rovDataTx.degree, start_pos=sendSize)
-
-    link.send(sendSize)
-    time.sleep(0.3)
-
-    if not link.available():
-        # print("if'a girdi")
-        if link.status < 0:
-            if link.status == txfer.CRC_ERROR:
-                print('ERROR: CRC_ERROR')
-            elif link.status == txfer.PAYLOAD_ERROR:
-                print('ERROR: PAYLOAD_ERROR')
-            elif link.status == txfer.STOP_BYTE_ERROR:
-                print('ERROR: STOP_BYTE_ERROR')
-            else:
-                    print('ERROR: {}'.format(link.status))
+        return df
