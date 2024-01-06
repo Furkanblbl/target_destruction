@@ -5,17 +5,17 @@ import time
 from pySerialTransfer import pySerialTransfer as txfer
 from torchvision.transforms import functional as F
 
-class ROVDataTx:
+class ROVDataTx: # Data to be sent to the microcontroller
     def __init__(self):
-        self.arac_ileri_degeri = 0
-        self.arac_x_degeri = 0
-        self.arac_y_degeri = 0
-        self.arac_yengec_degeri = 0
-        self.degree = 0
+        self.arac_ileri_degeri = 0 # move forward
+        self.arac_x_degeri = 0 # move left or right
+        self.arac_y_degeri = 0 # move up or down
+        self.arac_yengec_degeri = 0 
+        self.degree = 0 # rotate
 
-class ROVDataRx:
+class ROVDataRx: # Data to be received from the microcontroller
     def __init__(self):
-        self.RollS = 0
+        self.RollS = 0 
         self.PitchS = 0
         self.HeadingS = 0
         self.frontLidarS = 0
@@ -25,13 +25,13 @@ class ROVDataRx:
         self.data1S = 0
 
 class ImageProcessor:
-    def __init__(self, model_path='bestEftelya.pt'):
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=True)
+    def __init__(self, model_path='bestEftelya.pt'): # load YoLoV5 model
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=True)# load YoLoV5 model
 
-    def process_frame(self, frame):
-        with torch.no_grad():
-            img_tensor = F.to_tensor(frame).unsqueeze(0).cuda()
-            result = self.model(img_tensor)
-            df = result.pandas().xyxy[0]
+    def process_frame(self, frame): # image processing function
+        with torch.no_grad(): 
+            img_tensor = F.to_tensor(frame).unsqueeze(0).cuda() # image to tensor
+            result = self.model(img_tensor) # get results from the model
+            df = result.pandas().xyxy[0] # convert results to pandas DataFrame
 
-        return df
+        return df # return DataFrame
