@@ -35,3 +35,8 @@ class ImageProcessor:
             df = result.pandas().xyxy[0] # convert results to pandas DataFrame
 
         return df # return DataFrame
+    
+class ROVController:
+    def __init__(self, image_processor, serial_link): # initialize ROVController object
+        self.image_processor = image_processor # image_processor object
+        self.serial_link = serial_link # serial_link object
