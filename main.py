@@ -40,3 +40,20 @@ class ROVController:
     def __init__(self, image_processor, serial_link): # initialize ROVController object
         self.image_processor = image_processor # image_processor object
         self.serial_link = serial_link # serial_link object
+
+
+    def control_ROV(self): # control ROV function
+        rovDataTx = ROVDataTx() # Data to be sent to the microcontroller
+        rovDataRx = ROVDataRx() # Data to be received from the microcontroller
+
+        init = sl.InitParameters() # ZED camera initialization
+        init.camera_resolution = sl.RESOLUTION.HD720 # Use HD720 video mode (default fps: 60)
+        init.depth_mode = sl.DEPTH_MODE.PERFORMANCE # Use PERFORMANCE depth mode
+
+        zed = sl.Camera() # Create a ZED camera object
+        if not zed.is_opened(): # Open the camera if it isn't opened
+            print("Opening ZED Camera...")
+        status = zed.open(init) 
+        if status != sl.ERROR_CODE.SUCCESS: # Check that the camera is opened
+            print(repr(status))
+            exit()
