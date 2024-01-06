@@ -92,5 +92,5 @@ class ROVController:
                                 conf =  df_result['confidence'][ind] # get the confidence of the object
                                 text = label + " " + str(conf.round(decimals=2)) # get the text to be written on the image
                                 cv2.rectangle(frame, (x1,y1), (x2,y2), (0,0,0),2) # draw a rectangle around the object
-                                cv2.putText(frame, text,(x1,y1-5), cv2.FONT_ITALIC,2 ,(0,0,0),3) # write the text on the image
+                                cv2.putText(frame, text,(x1,y1-5), cv2.FONT_ITALIC,2 ,(0,0,0),2) # write the text on the image
                                 cv2.putText(frame, ".", (nokta), cv2.FONT_ITALIC, 1, (0, 0, 255), 4)
