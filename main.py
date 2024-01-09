@@ -94,3 +94,90 @@ class ROVController:
                                 cv2.rectangle(frame, (x1,y1), (x2,y2), (0,0,0),2) # draw a rectangle around the object
                                 cv2.putText(frame, text,(x1,y1-5), cv2.FONT_ITALIC,2 ,(0,0,0),2) # write the text on the image
                                 cv2.putText(frame, ".", (nokta), cv2.FONT_ITALIC, 1, (0, 0, 255), 4)
+                    if alan <= 500 : # if the area of the object is less than 500
+                        rovDataTx.arac_x_degeri = 0
+                        rovDataTx.arac_ileri_degeri = 150 # move the ROV forward
+                
+                    if alan >500: # if the area of the object is greater than 500
+                        if (-30 < farkx_ < 30):  # if the difference between the center of the object and the center of the image is less than 30 and greater than -30
+                            rovDataTx.arac_ileri_degeri = 200 # move the ROV forward
+
+                        else: # if the difference between the center of the object and the center of the image is greater than 30 or less than -30
+                            rovDataTx.arac_x_degeri = farkx_ # move the ROV left or right
+                            rovDataTx.arac_ileri_degeri = 0
+                            
+                
+                    if 70 > rovDataRx.altitudeS> 65 : # if pressure sensor value is between 65 and 70
+                        rovDataTx.arac_ileri_degeri = 0
+                        rovDataTx.arac_y_degeri = 150 # move the ROV up
+                        
+                    if rovDataRx.altitudeS  > 70 : # if pressure sensor value is greater than 70
+                        rovDataTx.arac_ileri_degeri = 0
+                        rovDataTx.arac_y_degeri = 175 # move the ROV up faster
+                        
+                    if rovDataRx.altitudeS < 10 : # if pressure sensor value is less than 10
+                        rovDataTx.arac_y_degeri = -50 # move the ROV down
+
+                    
+                    # send data to the microcontroller
+                    sendSize = 0
+                    sendSize = self.serial_link.tx_obj(rovDataTx.arac_ileri_degeri, start_pos=sendSize)
+                    sendSize = self.serial_link.tx_obj(rovDataTx.arac_y_degeri, start_pos=sendSize)
+                    sendSize = self.serial_link.tx_obj(rovDataTx.arac_x_degeri, start_pos=sendSize)
+                    sendSize = self.serial_link.tx_obj(rovDataTx.arac_yengec_degeri, start_pos=sendSize)
+                    sendSize = self.serial_link.tx_obj(rovDataTx.degree, start_pos=sendSize)
+                    self.serial_link.send(sendSize)
+
+                    # check if data is available to read
+                    if not self.serial_link.available():
+                        if self.serial_link.status < 0:
+                            if self.serial_link.status == txfer.CRC_ERROR:
+                                print('ERROR: CRC_ERROR')
+                            elif self.serial_link.status == txfer.PAYLOAD_ERROR:
+                                print('ERROR: PAYLOAD_ERROR')
+                            elif self.serial_link.status == txfer.STOP_BYTE_ERROR:
+                                print('ERROR: STOP_BYTE_ERROR')
+                            else:
+                                print('ERROR: {}'.format(self.serial_link.status))
+                    
+
+                    # read data from the microcontroller
+                    if self.serial_link.available(): 
+                        recSize = 0
+                        rovDataRx.RollS = self.serial_link.rx_obj(obj_type=type(rovDataRx.RollS), obj_byte_size=sendSize,
+                                                                start_pos=recSize) 
+                        rovDataRx.PitchS = self.serial_link.rx_obj(obj_type=type(rovDataRx.PitchS),obj_byte_size= sendSize,
+                                                                start_pos=recSize + 4)
+                        rovDataRx.HeadingS = self.serial_link.rx_obj(obj_type=type(rovDataRx.HeadingS),obj_byte_size= sendSize,
+                                                                start_pos=recSize + 8)
+                        rovDataRx.frontLidarS = self.serial_link.rx_obj(obj_type=type(rovDataRx.frontLidarS),obj_byte_size= sendSize,
+                                                                start_pos=recSize + 12)
+                        rovDataRx.leftLidarS = self.serial_link.rx_obj(obj_type=type(rovDataRx.leftLidarS),obj_byte_size= sendSize,
+                                                                start_pos=recSize + 16)
+                        rovDataRx.rightLidarS = self.serial_link.rx_obj(obj_type=type(rovDataRx.rightLidarS),obj_byte_size= sendSize,
+                                                                start_pos=recSize + 20)
+                        rovDataRx.altitudeS = self.serial_link.rx_obj(obj_type=type(rovDataRx.altitudeS),obj_byte_size= sendSize,
+                                                                start_pos=recSize + 24)
+                        rovDataRx.data1S = self.serial_link.rx_obj(obj_type=type(rovDataRx.data1S),obj_byte_size= sendSize,
+                                                                start_pos=recSize + 28)
+
+                    if cv2.waitKey(1) & 0xFF == ord('q'): # if q is pressed, exit the program
+                        break
+
+        finally: # close the camera
+            zed.close()
+            cv2.destroyAllWindows()
+
+
+if __name__ == "__main__": # main function
+    serial_link = txfer.SerialTransfer('/dev/ttyACM0') # serial_link object
+    serial_link.open() # open the serial link
+    time.sleep(2)  # allow some time for the Arduino to completely reset
+
+    try:
+        image_processor = ImageProcessor()
+        rov_controller = ROVController(image_processor, serial_link)
+        rov_controller.control_ROV()
+
+    finally:
+        serial_link.close()
